@@ -1,0 +1,46 @@
+# Реализация метода Гаусса без использования numpy
+
+def gauss_elimination(A, b):
+    n = len(b)
+    
+    # Прямой ход с частичным выбором ведущего элемента
+    for i in range(n):
+        # Находим максимальный элемент в столбце для выбора ведущего элемента
+        max_row = max(range(i, n), key=lambda r: abs(A[r][i]))
+        # Меняем местами строки
+        A[i], A[max_row] = A[max_row], A[i]
+        b[i], b[max_row] = b[max_row], b[i]
+        
+        # Прямой ход
+        for j in range(i+1, n):
+            factor = A[j][i] / A[i][i]
+            for k in range(i, n):
+                A[j][k] -= factor * A[i][k]
+            b[j] -= factor * b[i]
+    
+    # Обратная подстановка
+    x = [0 for _ in range(n)]
+    for i in range(n-1, -1, -1):
+        x[i] = (b[i] - sum(A[i][j] * x[j] for j in range(i+1, n))) / A[i][i]
+    
+    return x
+
+# Система уравнений
+A = [[2, 3], [4, 1]]  # Коэффициенты уравнений
+b = [5, 6]            # Свободные члены
+
+# Решаем систему
+x_manual = gauss_elimination(A, b)
+
+# Вычисление невязок вручную
+def calculate_residuals(A, x, b):
+    residuals = []
+    for i in range(len(b)):
+        res = b[i] - sum(A[i][j] * x[j] for j in range(len(x)))
+        residuals.append(res)
+    return residuals
+
+A_original = [[2, 3], [4, 1]]  # Восстанавливаем исходную матрицу для вычисления невязок
+residuals_manual = calculate_residuals(A_original, x_manual, [5, 6])
+
+x_manual, residuals_manual  # Решение и невязки
