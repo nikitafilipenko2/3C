@@ -1,0 +1,154 @@
+1. Интерполяция полиномом Лагранжа
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Исходная функция
+def f(x):
+    return np.sin(np.pi * x)
+
+# Интервалы
+x_vals = np.linspace(-1, 1, 100)
+
+# Лагранжев полином
+def lagrange_interpolation(x, y, x_vals):
+    n = len(x)
+    L = np.zeros_like(x_vals)
+    for i in range(n):
+        li = np.ones_like(x_vals)
+        for j in range(n):
+            if i != j:
+                li *= (x_vals - x[j]) / (x[i] - x[j])
+        L += y[i] * li
+    return L
+
+# Равноотстоящие узлы
+n_equal = 5
+x_equal = np.linspace(-1, 1, n_equal)
+y_equal = f(x_equal)
+
+# Чебышевские узлы
+n_chebyshev = 5
+x_chebyshev = np.cos((2*np.arange(1, n_chebyshev+1)-1) / (2*n_chebyshev) * np.pi)
+y_chebyshev = f(x_chebyshev)
+
+# Лагранжевы полиномы
+lagrange_equal = lagrange_interpolation(x_equal, y_equal, x_vals)
+lagrange_chebyshev = lagrange_interpolation(x_chebyshev, y_chebyshev, x_vals)
+
+# Построение графиков
+plt.figure(figsize=(10, 6))
+
+# График функции
+plt.plot(x_vals, f(x_vals), label='Original function', color='blue')
+
+# Лагранжев полином (равноотстоящие узлы)
+plt.plot(x_vals, lagrange_equal, label='Lagrange (equally spaced)', linestyle='--', color='red')
+
+# Лагранжев полином (Чебышевские узлы)
+plt.plot(x_vals, lagrange_chebyshev, label='Lagrange (Chebyshev)', linestyle='--', color='green')
+
+plt.scatter(x_equal, y_equal, color='red', zorder=5)
+plt.scatter(x_chebyshev, y_chebyshev, color='green', zorder=5)
+
+plt.title('Lagrange Polynomial Interpolation')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.grid(True)
+plt.show()
+-------------------------------------------------------------------------------------------
+2. Кубический сплайн
+Алгоритм:
+
+Рассчитать вторые производные в узлах интерполяции.
+Использовать вторые производные для вычисления коэффициентов сплайна.
+# Функция для кубического сплайна
+def cubic_spline(x, y, x_vals):
+    n = len(x)
+    h = np.diff(x)
+    alpha = np.diff(y) / h
+
+    l = np.ones(n)
+    mu = np.zeros(n-1)
+    z = np.zeros(n)
+
+    for i in range(1, n-1):
+        l[i] = 2 * (x[i+1] - x[i-1]) - h[i-1] * mu[i-1]
+        mu[i] = h[i] / l[i]
+        z[i] = (alpha[i] - alpha[i-1]) - h[i-1] * z[i-1] / l[i]
+
+    l[n-1] = 1
+    z[n-1] = 0
+    b = np.zeros(n-1)
+    c = np.zeros(n)
+    d = np.zeros(n-1)
+    a = y[:-1]
+
+    for j in range(n-2, -1, -1):
+        c[j] = z[j] - mu[j] * c[j+1]
+        b[j] = (y[j+1] - y[j]) / h[j] - h[j] * (c[j+1] + 2 * c[j]) / 3
+        d[j] = (c[j+1] - c[j]) / (3 * h[j])
+
+    # Вычисление значений сплайна
+    def S(xi):
+        for j in range(n-1):
+            if x[j] <= xi <= x[j+1]:
+                dx = xi - x[j]
+                return a[j] + b[j]*dx + c[j]*dx**2 + d[j]*dx**3
+        return None
+
+    S_vals = np.array([S(xi) for xi in x_vals])
+    return S_vals
+
+# Кубический сплайн (равноотстоящие узлы)
+spline_equal = cubic_spline(x_equal, y_equal, x_vals)
+
+# Сортируем Чебышевские узлы для кубического сплайна
+x_chebyshev_sorted = np.sort(x_chebyshev)
+y_chebyshev_sorted = f(x_chebyshev_sorted)
+
+# Кубический сплайн (Чебышевские узлы, сортированные)
+spline_chebyshev = cubic_spline(x_chebyshev_sorted, y_chebyshev_sorted, x_vals)
+
+# Построение графика сплайнов
+plt.figure(figsize=(10, 6))
+
+# График функции
+plt.plot(x_vals, f(x_vals), label='Original function', color='blue')
+
+# Кубический сплайн (равноотстоящие узлы)
+plt.plot(x_vals, spline_equal, label='Cubic spline (equally spaced)', linestyle='--', color='red')
+
+# Кубический сплайн (Чебышевские узлы, сортированные)
+plt.plot(x_vals, spline_chebyshev, label='Cubic spline (Chebyshev, sorted)', linestyle='--', color='green')
+
+plt.scatter(x_equal, y_equal, color='red', zorder=5)
+plt.scatter(x_chebyshev_sorted, y_chebyshev_sorted, color='green', zorder=5)
+
+plt.title('Cubic Spline Interpolation (with Sorted Chebyshev Nodes)')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.grid(True)
+plt.show()
+---------------------------------------------------------------------------------------------3. Кубический сплайн для заданной таблицы
+# Заданные точки
+x_table = np.array([2, 3, 5, 7])
+y_table = np.array([4, -2, 6, -3])
+x_vals_table = np.linspace(2, 7, 100)
+
+# Кубический сплайн для заданной таблицы
+spline_table = cubic_spline(x_table, y_table, x_vals_table)
+
+# Построение графика сплайна для таблицы
+plt.figure(figsize=(10, 6))
+plt.plot(x_vals_table, spline_table, label='Cubic spline (table points)', color='purple')
+
+plt.scatter(x_table, y_table, color='black', zorder=5)
+
+plt.title('Cubic Spline for Table Points')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.grid(True)
+plt.show()
