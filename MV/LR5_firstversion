@@ -1,0 +1,94 @@
+# Реализация интерполяции Лагранжа вручную
+def lagrange_basis(x, i, x_points):
+    basis = 1
+    for j in range(len(x_points)):
+        if i != j:
+            basis *= (x - x_points[j]) / (x_points[i] - x_points[j])
+    return basis
+
+def lagrange_interpolation_manual(x_points, y_points, x_vals):
+    interp_vals = np.zeros_like(x_vals)
+    for i in range(len(x_points)):
+        interp_vals += y_points[i] * lagrange_basis(x_vals, i, x_points)
+    return interp_vals
+
+# Кубический сплайн вручную (методом кусочной интерполяции)
+def cubic_spline_manual(x_points, y_points, x_vals):
+    n = len(x_points) - 1  # количество интервалов
+    h = np.diff(x_points)  # шаги между узлами
+    alpha = [0] * n
+    l = [1] * (n+1)
+    mu = [0] * n
+    z = [0] * (n+1)
+    
+    # шаг 1: найти прогоночные коэффициенты для решения системы уравнений
+    for i in range(1, n):
+        alpha[i] = (3 / h[i]) * (y_points[i+1] - y_points[i]) - (3 / h[i-1]) * (y_points[i] - y_points[i-1])
+    
+    for i in range(1, n):
+        l[i] = 2 * (x_points[i+1] - x_points[i-1]) - h[i-1] * mu[i-1]
+        mu[i] = h[i] / l[i]
+        z[i] = (alpha[i] - h[i-1] * z[i-1]) / l[i]
+    
+    b = [0] * n
+    c = [0] * (n+1)
+    d = [0] * n
+    
+    # шаг 2: обратный ход
+    for i in range(n-1, -1, -1):
+        c[i] = z[i] - mu[i] * c[i+1]
+        b[i] = (y_points[i+1] - y_points[i]) / h[i] - h[i] * (c[i+1] + 2 * c[i]) / 3
+        d[i] = (c[i+1] - c[i]) / (3 * h[i])
+    
+    # шаг 3: вычисление значений сплайна на интервале
+    spline_vals = np.zeros_like(x_vals)
+    for i in range(n):
+        idx = np.where((x_vals >= x_points[i]) & (x_vals <= x_points[i+1]))[0]
+        dx = x_vals[idx] - x_points[i]
+        spline_vals[idx] = y_points[i] + b[i] * dx + c[i] * dx**2 + d[i] * dx**3
+    
+    return spline_vals
+
+# Исходные данные
+n_equal = 5
+x_equal = np.linspace(-1, 1, n_equal)
+y_equal = f(x_equal)
+
+n_chebyshev = 5
+x_chebyshev = np.cos((2*np.arange(1, n_chebyshev+1)-1) / (2*n_chebyshev) * np.pi)
+y_chebyshev = f(x_chebyshev)
+
+# Лагранжевы полиномы вручную
+lagrange_equal_manual = lagrange_interpolation_manual(x_equal, y_equal, x_vals)
+lagrange_chebyshev_manual = lagrange_interpolation_manual(x_chebyshev, y_chebyshev, x_vals)
+
+# Кубический сплайн вручную
+spline_equal_manual = cubic_spline_manual(x_equal, y_equal, x_vals)
+spline_chebyshev_manual = cubic_spline_manual(np.sort(x_chebyshev), f(np.sort(x_chebyshev)), x_vals)
+
+# Построение графиков
+plt.figure(figsize=(10, 6))
+plt.plot(x_vals, f(x_vals), label='Original function', color='blue')
+plt.plot(x_vals, lagrange_equal_manual, label='Lagrange (equally spaced, manual)', linestyle='--', color='red')
+plt.plot(x_vals, lagrange_chebyshev_manual, label='Lagrange (Chebyshev, manual)', linestyle='--', color='green')
+plt.scatter(x_equal, y_equal, color='red')
+plt.scatter(x_chebyshev, y_chebyshev, color='green')
+plt.title('Lagrange Polynomial Interpolation (Manual)')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+plt.figure(figsize=(10, 6))
+plt.plot(x_vals, f(x_vals), label='Original function', color='blue')
+plt.plot(x_vals, spline_equal_manual, label='Cubic spline (equally spaced, manual)', linestyle='--', color='red')
+plt.plot(x_vals, spline_chebyshev_manual, label='Cubic spline (Chebyshev, manual)', linestyle='--', color='green')
+plt.scatter(x_equal, y_equal, color='red')
+plt.scatter(np.sort(x_chebyshev), f(np.sort(x_chebyshev)), color='green')
+plt.title('Cubic Spline Interpolation (Manual)')
+plt.xlabel('x')
+plt.ylabel('f(x)')
+plt.legend()
+plt.grid(True)
+plt.show()
