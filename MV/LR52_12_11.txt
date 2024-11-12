@@ -1,0 +1,111 @@
+import math
+import matplotlib.pyplot as plt
+
+# Данные для варианта 10
+x = [3, 4, 5, 6, 7, 8]
+y = [13, 31, 64, 105, 170, 252]
+
+# Вспомогательные функции для вычислений
+def mean(values):
+    return sum(values) / len(values)
+
+def linear_approx(x, y):
+    n = len(x)
+    x_mean = mean(x)
+    y_mean = mean(y)
+    
+    numerator = sum((x[i] - x_mean) * (y[i] - y_mean) for i in range(n))
+    denominator = sum((x[i] - x_mean) ** 2 for i in range(n))
+    
+    a = numerator / denominator
+    b = y_mean - a * x_mean
+    return a, b
+
+def power_approx(x, y):
+    n = len(x)
+    log_x = [math.log(xi) for xi in x]
+    log_y = [math.log(yi) for yi in y]
+    
+    a_log, b = linear_approx(log_x, log_y)
+    a = math.exp(b)
+    return a, a_log
+
+def exponential_approx(x, y):
+    n = len(x)
+    log_y = [math.log(yi) for yi in y]
+    
+    a, b_log = linear_approx(x, log_y)
+    b = math.exp(b_log)
+    return b, a
+
+def quadratic_approx(x, y):
+    n = len(x)
+    sum_x = sum(x)
+    sum_x2 = sum(xi**2 for xi in x)
+    sum_x3 = sum(xi**3 for xi in x)
+    sum_x4 = sum(xi**4 for xi in x)
+    sum_y = sum(y)
+    sum_xy = sum(x[i] * y[i] for i in range(n))
+    sum_x2y = sum(x[i]**2 * y[i] for i in range(n))
+
+    # Решаем систему линейных уравнений для коэффициентов a, b, c
+    a = (
+        (sum_y * (sum_x2 * sum_x4 - sum_x3**2) -
+         sum_xy * (sum_x * sum_x4 - sum_x2 * sum_x3) +
+         sum_x2y * (sum_x * sum_x3 - sum_x2**2)) /
+        (n * (sum_x2 * sum_x4 - sum_x3**2) -
+         sum_x * (sum_x * sum_x4 - sum_x2 * sum_x3) +
+         sum_x2 * (sum_x * sum_x3 - sum_x2**2))
+    )
+    
+    b = (
+        (n * (sum_xy * sum_x4 - sum_x2y * sum_x3) -
+         sum_x * (sum_y * sum_x4 - sum_x2y * sum_x2) +
+         sum_x2 * (sum_y * sum_x3 - sum_xy * sum_x2)) /
+        (n * (sum_x2 * sum_x4 - sum_x3**2) -
+         sum_x * (sum_x * sum_x4 - sum_x2 * sum_x3) +
+         sum_x2 * (sum_x * sum_x3 - sum_x2**2))
+    )
+    
+    c = (
+        (n * (sum_x2 * sum_x2y - sum_x3 * sum_xy) -
+         sum_x * (sum_x * sum_x2y - sum_x3 * sum_y) +
+         sum_x2 * (sum_x * sum_xy - sum_x2 * sum_y)) /
+        (n * (sum_x2 * sum_x4 - sum_x3**2) -
+         sum_x * (sum_x * sum_x4 - sum_x2 * sum_x3) +
+         sum_x2 * (sum_x * sum_x3 - sum_x2**2))
+    )
+    return a, b, c
+
+# 1. Рассчитаем параметры для каждой модели
+a_linear, b_linear = linear_approx(x, y)
+a_power, b_power = power_approx(x, y)
+a_exp, b_exp = exponential_approx(x, y)
+a_quad, b_quad, c_quad = quadratic_approx(x, y)
+
+# 2. Построение графиков
+x_vals = [i / 10.0 for i in range(30, 81)]
+y_linear = [a_linear * xi + b_linear for xi in x_vals]
+y_power = [a_power * xi**b_power for xi in x_vals]
+y_exp = [a_exp * math.exp(b_exp * xi) for xi in x_vals]
+y_quad = [a_quad * xi**2 + b_quad * xi + c_quad for xi in x_vals]
+
+plt.plot(x, y, 'o', label='Экспериментальные данные')
+plt.plot(x_vals, y_linear, label=f'Линейная: y = {a_linear:.2f} * x + {b_linear:.2f}')
+plt.plot(x_vals, y_power, label=f'Степенная: y = {a_power:.2f} * x^{b_power:.2f}')
+plt.plot(x_vals, y_exp, label=f'Показательная: y = {a_exp:.2f} * exp({b_exp:.2f} * x)')
+plt.plot(x_vals, y_quad, label=f'Квадратичная: y = {a_quad:.2f} * x^2 + {b_quad:.2f} * x + {c_quad:.2f}')
+
+# Настройки графика
+plt.xlabel('x')
+plt.ylabel('y')
+plt.legend()
+plt.title('Аппроксимация экспериментальных данных для варианта 10')
+plt.grid()
+plt.show()
+
+# 3. Вывод параметров
+print("Параметры для линейной функции:", round(a_linear, 2), round(b_linear, 2))
+print("Параметры для степенной функции:", round(a_power, 2), round(b_power, 2))
+print("Параметры для показательной функции:", round(a_exp, 2), round(b_exp, 2))
+print("Параметры для квадратичной функции:", round(a_quad, 2), round(b_quad, 2), round(c_quad, 2))
